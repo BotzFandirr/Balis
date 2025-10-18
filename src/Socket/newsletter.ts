@@ -9,7 +9,7 @@ import {
 	NewsletterFetchedUpdate
 } from '../Types'
 import { decryptMessageNode, generateMessageID, generateProfilePicture, getUrlFromDirectPath } from '../Utils'
-import { BinaryNode, getAllBinaryNodeChildren, getBinaryNodeChild, getBinaryNodeChildren, S_WHATSAPP_NET, isJidNewsletter } from '../WABinary'
+import { BinaryNode, getAllBinaryNodeChildren, getBinaryNodeChild, getBinaryNodeChildren, S_WHATSAPP_NET } from '../WABinary'
 import { makeGroupsSocket } from './groups'
 
 enum QueryIds {
@@ -24,12 +24,12 @@ enum QueryIds {
 	CHANGE_OWNER = '7341777602580933',
 	DELETE = '8316537688363079',
 	DEMOTE = '6551828931592903',
-	SUBSCRIBED = '6388546374527196',
+	SUBSCRIBED = '6388546374527196' // Ditambahkan
 }
 
 export const makeNewsletterSocket = (config: SocketConfig) => {
-	const suki = makeGroupsSocket(config)
-	const { authState, signalRepository, query, generateMessageTag } = suki
+	const suki = makeGroupsSocket(config) // 'sock' diubah menjadi 'suki'
+	const { authState, signalRepository, query, generateMessageTag } = suki // referensi 'suki'
 
 	const encoder = new TextEncoder()
 
@@ -114,6 +114,7 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 		}))
 	}
 
+	// Fungsi ini didefinisikan di dalam agar dapat mengakses 'newsletterWMexQuery'
 	const newsletterMetadata = async(type: 'invite' | 'jid', key: string, role?: NewsletterViewRole) => {
 		const result = await newsletterWMexQuery(undefined, QueryIds.METADATA, {
 			input: {
@@ -130,7 +131,7 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 	}
 
 	return {
-		...suki,
+		...suki, // referensi 'suki'
 		newsletterQuery,
 		newsletterWMexQuery,
 		subscribeNewsletterUpdates: async(jid: string) => {
@@ -187,6 +188,12 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 			await newsletterWMexQuery(jid, QueryIds.MUTE)
 		},
 
+		// Fungsi baru ditambahkan
+		newsletterAction: async (jid: string, type: 'UNFOLLOW' | 'FOLLOW' | 'UNMUTE' | 'MUTE' | 'DELETE') => {
+			// Menggunakan enum QueryIds lokal
+			await newsletterWMexQuery(jid, QueryIds[type])
+		},
+
 		newsletterCreate: async(name: string, description?: string, picture?: WAMediaUpload) => {
 			await query({
 				tag: 'iq',
@@ -210,8 +217,9 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 			const result = await newsletterWMexQuery(undefined, QueryIds.CREATE, {
 				input: {
 					name,
-					description: description ?? null,
+					description: description || null,
 					picture: picture ? (await generateProfilePicture(picture)).img.toString('base64') : null,
+					// Diperbarui
 					settings: {
 						reaction_codes: {
 							value: 'ALL'
@@ -223,35 +231,46 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 			return extractNewsletterMetadata(result, true)
 		},
 
-		newsletterMetadata,
+		newsletterMetadata, // Mengekspos fungsi yang didefinisikan di atas
 
+		newsletterAdminCount: async(jid: string) => {
+			const result = await newsletterWMexQuery(jid, QueryIds.ADMIN_COUNT)
+
+			const buff = getBinaryNodeChild(result, 'result')?.content?.toString()
+			
+			return JSON.parse(buff!).data[XWAPaths.ADMIN_COUNT].admin_count as number
+		},
+
+		// Fungsi baru ditambahkan
 		newsletterFetchAllParticipating: async () => {
-			const result = await newsletterWMexQuery(undefined, QueryIds.SUBSCRIBED)
-			const child = JSON.parse(getBinaryNodeChild(result, 'result')?.content?.toString())
-			const newsletters = child.data[XWAPaths.SUBSCRIBED] || []
-
-			const data: { [jid: string]: NewsletterMetadata } = {}
-
-			for (const { id } of newsletters) {
-				if (!isJidNewsletter(id)) continue
-				const metadata = await newsletterMetadata('jid', id)
-				data[metadata.id] = metadata
+			const data: { [key: string]: NewsletterMetadata } = {}
+		
+			const result = await newsletterWMexQuery(undefined, QueryIds.SUBSCRIBED) 
+			const child = JSON.parse(getBinaryNodeChild(result, 'result')?.content?.toString()!)
+			const newsletters = child.data[XWAPaths.SUBSCRIBED]
+		
+			for (const i of newsletters) {
+				if (i.id == null) continue
+			
+				// Menggunakan fungsi newsletterMetadata internal
+				const metadata = await newsletterMetadata('JID', i.id) 
+				if (metadata.id !== null) data[metadata.id] = metadata
 			}
-
+			
 			return data
 		},
 
-		/**userLid is Lid, not Jid */
-		newsletterChangeOwner: async(jid: string, userLid: string) => {
+		/**user is Lid, not Jid */
+		newsletterChangeOwner: async(jid: string, user: string) => {
 			await newsletterWMexQuery(jid, QueryIds.CHANGE_OWNER, {
-				user_id: userLid
+				user_id: user
 			})
 		},
 
-		/**userLid is Lid, not Jid */
-		newsletterDemote: async(jid: string, userLid: string) => {
+		/**user is Lid, not Jid */
+		newsletterDemote: async(jid: string, user: string) => {
 			await newsletterWMexQuery(jid, QueryIds.DEMOTE, {
-				user_id: userLid
+				user_id: user
 			})
 		},
 
@@ -260,10 +279,10 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 		},
 
 		/**if code wasn't passed, the reaction will be removed (if is reacted) */
-		newsletterReactMessage: async(jid: string, serverId: string, code?: string) => {
+		newsletterReactMessage: async(jid: string, server_id: string, code?: string) => {
 			await query({
 				tag: 'message',
-				attrs: { to: jid, ...(!code ? { edit: '7' } : {}), type: 'reaction', server_id: serverId, id: generateMessageID()},
+				attrs: { to: jid, ...(!code ? { edit: '7' } : {}), type: 'reaction', server_id, id: generateMessageID()},
 				content: [{
 					tag: 'reaction',
 					attrs: code ? {code} : {}
@@ -296,6 +315,7 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 	}
 }
 
+// Diperbarui agar lebih aman (robust) dengan optional chaining dan getUrlFromDirectPath
 export const extractNewsletterMetadata = (node: BinaryNode, isCreate?: boolean) => {
 	const result = getBinaryNodeChild(node, 'result')?.content?.toString()
 	const metadataPath = JSON.parse(result!).data[isCreate ? XWAPaths.CREATE : XWAPaths.NEWSLETTER]
