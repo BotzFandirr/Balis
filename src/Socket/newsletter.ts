@@ -6,26 +6,14 @@ import {
 	NewsletterViewRole,
 	XWAPaths,
 	NewsletterReaction,
-	NewsletterFetchedUpdate
+	NewsletterFetchedUpdate,
+	QueryIds // DIIMPOR DARI TYPES
 } from '../Types'
 import { decryptMessageNode, generateMessageID, generateProfilePicture, getUrlFromDirectPath } from '../Utils'
 import { BinaryNode, getAllBinaryNodeChildren, getBinaryNodeChild, getBinaryNodeChildren, S_WHATSAPP_NET } from '../WABinary'
 import { makeGroupsSocket } from './groups'
 
-enum QueryIds {
-	JOB_MUTATION = '7150902998257522',
-	METADATA = '6620195908089573',
-	UNFOLLOW = '7238632346214362',
-	FOLLOW = '7871414976211147',
-	UNMUTE = '7337137176362961',
-	MUTE = '25151904754424642',
-	CREATE = '6996806640408138',
-	ADMIN_COUNT = '7130823597031706',
-	CHANGE_OWNER = '7341777602580933',
-	DELETE = '8316537688363079',
-	DEMOTE = '6551828931592903',
-	SUBSCRIBED = '6388546374527196' // Ditambahkan
-}
+// ENUM QueryIds DIHAPUS DARI SINI
 
 export const makeNewsletterSocket = (config: SocketConfig) => {
 	const suki = makeGroupsSocket(config) // 'sock' diubah menjadi 'suki'
@@ -253,7 +241,8 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 				if (i.id == null) continue
 			
 				// Menggunakan fungsi newsletterMetadata internal
-				const metadata = await newsletterMetadata('JID', i.id) 
+				// DIPERBAIKI: 'JID' diubah menjadi 'jid' (lowercase)
+				const metadata = await newsletterMetadata('jid', i.id) 
 				if (metadata.id !== null) data[metadata.id] = metadata
 			}
 			
