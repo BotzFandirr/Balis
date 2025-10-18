@@ -235,7 +235,7 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 		
 			const result = await newsletterWMexQuery(undefined, QueryIds.SUBSCRIBED) 
 			const child = JSON.parse(getBinaryNodeChild(result, 'result')?.content?.toString()!)
-			const newsletters = child.data[XWAPaths.SUBSCRIBED]
+			const newsletters = child.data[XWAPaths.SUBSCRIBED] || []
 		
 			for (const i of newsletters) {
 				if (i.id == null) continue
