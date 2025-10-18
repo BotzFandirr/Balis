@@ -7,13 +7,12 @@
     "js-whatsapp", "whatsapp-api", "whatsapp-web", "whatsapp-bot",
     "automation", "multi-device"
   ],
-  "homepage": "https://github.com/BotzFandirr/Balis",
+  "homepage": "https://github.com/BotzFandirr/Bail",
   "repository": {
-    "type": "git",
-    "url": "git+https://github.com/BotzFandirr/Balis.git"
+    "url": "git+ssh://git@github.com/BotzFandirr/Bail.git"
   },
   "license": "MIT",
-  "author": "Fandirr Store",
+  "author": "Adhiraj Singh",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
@@ -47,7 +46,7 @@
     "cache-manager": "^5.7.6",
     "cheerio": "^1.0.0-rc.10",
     "libphonenumber-js": "^1.10.20",
-    "libsignal": "github:BotzFandirr/libsignal",
+    "libsignal": "github:nstar-y/libsignal",
     "lodash": "^4.17.21",
     "music-metadata": "^7.12.3",
     "pino": "^9.6",
